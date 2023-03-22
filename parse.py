@@ -73,62 +73,35 @@ def string_to_date(date_str: str) -> date:
     elif 'Вчера' in date_str:
         return date.today() - timedelta(days=1)
     day, month, year = date_str.split()
-    if month == 'января':
-        month = 1
-    elif month == 'февраля':
-        month = 2
-    elif month == 'марта':
-        month = 3
-    elif month == 'апреля':
-        month = 4
-    elif month == 'мая':
-        month = 5
-    elif month == 'июня':
-        month = 6
-    elif month == 'июля':
-        month = 7
-    elif month == 'августа':
-        month = 8
-    elif month == 'сентября':
-        month = 9
-    elif month == 'октября':
-        month = 10
-    elif month == 'ноября':
-        month = 11
-    elif month == 'декабря':
-        month = 12
-    else:
-        month = 12
-
-    # match month:
-    #     case 'января':
-    #         month = 1
-    #     case 'февраля':
-    #         month = 2
-    #     case 'марта':
-    #         month = 3
-    #     case 'апреля':
-    #         month = 4
-    #     case 'мая':
-    #         month = 5
-    #     case 'июня':
-    #         month = 6
-    #     case 'июля':
-    #         month = 7
-    #     case 'августа':
-    #         month = 8
-    #     case 'сентября':
-    #         month = 9
-    #     case 'октября':
-    #         month = 10
-    #     case 'ноября':
-    #         month = 11
-    #     case 'декабря':
-    #         month = 12
-    #     case _:
-    #         # Если не получится распознать месяц указываем декабрь,
-    #         # дата скорее всего будет из будущего, что будет заметно в сообщении
-    #         month = 12
+    match month:
+        case 'января':
+            month = 1
+        case 'февраля':
+            month = 2
+        case 'марта':
+            month = 3
+        case 'апреля':
+            month = 4
+        case 'мая':
+            month = 5
+        case 'июня':
+            month = 6
+        case 'июля':
+            month = 7
+        case 'августа':
+            month = 8
+        case 'сентября':
+            month = 9
+        case 'октября':
+            month = 10
+        case 'ноября':
+            month = 11
+        case 'декабря':
+            month = 12
+        case _:
+            # Если не получится распознать месяц указываем декабрь,
+            # дата скорее всего будет из будущего, что будет заметно в сообщении
+            month = 12
 
     return date(int(year), month, int(day))
 
@@ -147,7 +120,7 @@ def parse_gazprom(url: str) -> None:
         # Получаем дату и сравниваем с датой последнего парсинга
         article_date = string_to_date(card.find('span', 'card-date').text)
         if article_date < from_what_date_to_parse:
-            break
+            continue
 
         article_link = url + card['href'].split('/')[-2]
         article_title = card.find('span', 'card-title').text.strip()
