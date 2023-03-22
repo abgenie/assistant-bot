@@ -1,22 +1,17 @@
 import urllib3
-from datetime import date, timedelta
-
 import requests
+from datetime import date, timedelta
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
-
 from data import *
 
-
 urllib3.disable_warnings()
-last_update_date = date.today() - timedelta(days=10)
+from_what_date_to_parse = date.today() - timedelta(days=how_many_days_ago_to_parse)
 
 
 def main():
-
-    clean_file()
 
     # Проходим по всем разделам всех сайтов
     write_title_to_file('Газпромбанк')
@@ -35,7 +30,7 @@ def main():
     parse_tinkoff(TINKOFF)
 
 
-def select_sort_new(url: str) -> BeautifulSoup:
+def select_sort_new_for_open(url: str) -> BeautifulSoup:
     """Выбирает метод сортировки статей 'Сначала новое',
     возвращает объект 'BeautifulSoup' с отсортированными статьями"""
     options = Options()
@@ -51,12 +46,6 @@ def select_sort_new(url: str) -> BeautifulSoup:
 
     driver.close()
     return soup
-
-
-def clean_file() -> None:
-    """Очищает файл"""
-    with open(filename, 'w', encoding='utf8') as f:
-        f.write('')
 
 
 def write_title_to_file(title: str) -> None:
@@ -110,16 +99,16 @@ def string_to_date(date_str: str) -> date:
         case 'декабря':
             month = 12
         case _:
-            with open('log.txt', 'a', encoding='utf8') as f:
-                f.write(f'{date.today()} ERROR (parse.py -> string_to_date()): не получилось распознать "{month}"')
-            month = 1
+            # Если не получится распознать месяц указываем декабрь,
+            # дата скорее всего будет из будущего, что будет заметно в сообщении
+            month = 12
 
     return date(int(year), month, int(day))
 
 
 def parse_gazprom(url: str) -> None:
     """Парсит данные с сайта 'https://gazprombank.investments'"""
-    
+
     response = requests.get(url, headers={'User-agent': 'Mozilla/5.0'}, verify=False).text
     soup = BeautifulSoup(response, 'html.parser')
 
@@ -128,16 +117,16 @@ def parse_gazprom(url: str) -> None:
     articles = []
     cards = soup.find_all('a', 'card')
     for card in cards:
-        # Получаем дату и проверяем, сравниваем с датой последнего парсинга
+        # Получаем дату и сравниваем с датой последнего парсинга
         article_date = string_to_date(card.find('span', 'card-date').text)
-        if article_date < last_update_date:
+        if article_date < from_what_date_to_parse:
             break
 
         article_link = url + card['href'].split('/')[-2]
         article_title = card.find('span', 'card-title').text.strip()
-        
+
         articles.append(f'{article_date}\n<a href="{article_link}">{article_title}</a>\n')
-    
+
     if articles:
         write_articles_to_file(section_title, articles)
 
@@ -152,13 +141,15 @@ def parse_open(url: str) -> None:
 
     # Если сортировка не по дате, то переключаем её с помощью Selenium и возвращаем новый soup
     if not soup.find('span', 'MultiSelect_multiselectText__38MZ5').text == 'Сначала новое':
-        soup = select_sort_new(url)
+        soup = select_sort_new_for_open(url)
 
     articles = []
     cards = soup.find_all('a', 'CardSmall_card__1SmUx Category_rootArticle__1XgQa')
     for card in cards:
         # Получаем дату и проверяем, сравниваем с датой последнего парсинга
-        raw_date = card.find('p', 'CardSmall_noWrap__3I1yt Paragraph-module__paragraph--g4xw7 Paragraph-module__paragraph--p4--uYcdM Paragraph-module__paragraph--fixed_60--Mqv6o').text[:-8]
+        raw_date = card.find('p', 'CardSmall_noWrap__3I1yt Paragraph-module__paragraph--g4xw7 '
+                                  'Paragraph-module__paragraph--p4--uYcdM '
+                                  'Paragraph-module__paragraph--fixed_60--Mqv6o').text[:-8]
 
         try:
             # Проверяем указан ли в конце год
@@ -168,13 +159,14 @@ def parse_open(url: str) -> None:
             raw_date += ' ' + str(date.today().year)
 
         article_date = string_to_date(raw_date)
-        if article_date < last_update_date:
+        if article_date < from_what_date_to_parse:
             break
 
         article_link = url + card['href'].split('/')[-2]
-        article_title = card.find('p', 'CardSmall_cardTitle__bv6e3 Paragraph-module__paragraph--g4xw7 Paragraph-module__paragraph--p1--iBqRO').text
+        article_title = card.find('p', 'CardSmall_cardTitle__bv6e3 Paragraph-module__paragraph--g4xw7 '
+                                       'Paragraph-module__paragraph--p1--iBqRO').text
         article_title = article_title.replace(' ', ' ').strip()
-        
+
         articles.append(f'{article_date}\n<a href="{article_link}">{article_title}</a>\n')
 
     if articles:
@@ -191,7 +183,8 @@ def parse_dohod(url: str) -> None:
 
     articles = []
     if url == 'https://www.dohod.ru/analytic/research':
-        cards = soup.find_all('a', 'clr-black t-tdn products__slide slider-main__slide swiper-slide products__slide--chart bg-white products__analytic_blog_item')
+        cards = soup.find_all('a', 'clr-black t-tdn products__slide slider-main__slide '
+                                   'swiper-slide products__slide--chart bg-white products__analytic_blog_item')
     else:
         cards = soup.find_all('a', 't-tdn article__link')
 
@@ -202,10 +195,10 @@ def parse_dohod(url: str) -> None:
             list_date = [int(x) for x in card.time['datetime'].split('-')]
             article_date = date(*list_date)
 
-        if article_date < last_update_date:
+        if article_date < from_what_date_to_parse:
             break
 
-        article_link = 'https://www.dohod.ru' + card['href']
+        article_link = 'https://www.dohod.ru/' + card['href']
         article_title = card.h4.text.strip()
 
         articles.append(f'{article_date}\n<a href="{article_link}">{article_title}</a>\n')
@@ -226,7 +219,7 @@ def parse_tinkoff(url: str) -> None:
     for card in cards:
         # Получаем дату и проверяем, сравниваем с датой последнего парсинга
         article_date = string_to_date(card.find('div', 'ResearchCatalogNews__date_Irh8b').text)
-        if article_date < last_update_date:
+        if article_date < from_what_date_to_parse:
             break
 
         article_link = card['href']

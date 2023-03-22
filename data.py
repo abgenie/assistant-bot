@@ -31,3 +31,4 @@ DOHOD = [
 TINKOFF = 'https://www.tinkoff.ru/invest/research/all/'
 
 filename = 'message.txt'
+how_many_days_ago_to_parse = 10
