@@ -1,13 +1,13 @@
 import os
 import requests
 from dotenv import load_dotenv
-from data import filename
 
 load_dotenv()
 TOKEN = os.environ.get('botToken')
 CHAT_ID = os.environ.get('chatId')
 
 url_send_message = f'https://api.telegram.org/bot{TOKEN}/sendMessage'
+filename = 'messages.txt'
 
 
 def main():

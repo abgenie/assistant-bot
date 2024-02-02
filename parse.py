@@ -1,27 +1,45 @@
 import urllib3
 import requests
+import traceback
 from datetime import date, timedelta
 from bs4 import BeautifulSoup
 
 
 urllib3.disable_warnings()
 
+today = date.today().isoformat()
+
 
 def main():
 
-    articles_gazprom = parse_gazprom('https://gazprombank.investments/blog/')
-    write_articles_to_file('ГАЗПРОМБАНК', articles_gazprom)
+    try:
+        articles_gazprom = parse_gazprom('https://gazprombank.investments/blog/')
+        write_articles_to_file('ГАЗПРОМБАНК', articles_gazprom)
+    except AttributeError as err:
+        with open('errors/' + today + '_gazprom.txt', 'w', encoding='utf8') as f:
+            traceback.print_exc(file=f)
 
-    articles_tinkoff = parse_tinkoff('https://www.tinkoff.ru/invest/research/all/')
-    write_articles_to_file('ТИНЬКОФФ', articles_tinkoff)
+    try:
+        articles_tinkoff = parse_tinkoff('https://www.tinkoff.ru/invest/research/all/')
+        write_articles_to_file('ТИНЬКОФФ', articles_tinkoff)
+    except AttributeError as err:
+        with open('errors/' + today + '_tinkoff.txt', 'w', encoding='utf8') as f:
+            traceback.print_exc(file=f)
 
-    articles_dohod = parse_dohod('https://www.dohod.ru/analytic/research')
-    write_articles_to_file('ДОХОД', articles_dohod)
+    try:
+        articles_dohod = parse_dohod('https://www.dohod.ru/analytic/research')
+        write_articles_to_file('ДОХОД', articles_dohod)
+    except AttributeError as err:
+        with open('errors/' + today + '_dohod.txt', 'w', encoding='utf8') as f:
+            traceback.print_exc(file=f)
 
 
+# HELP FUNCTIONS
+
+       
 def write_articles_to_file(title: str, articles: list[str]) -> None:
     """Сохраняет полученные данные в файл"""
-    with open('message.txt', 'a', encoding='utf8') as f:
+    with open('messages.txt', 'a', encoding='utf8') as f:
         f.write(title + '\n')
         for article in articles:
             f.write(article)
@@ -69,6 +87,9 @@ def string_to_date(date_str: str) -> date:
             month = 12
 
     return date(int(year), month, int(day))
+
+
+# BLOG PARSE FUNCTIONS
 
 
 def parse_gazprom(url: str) -> list[str]:
